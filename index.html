@@ -316,12 +316,12 @@
 const CONFIG = {
     titulo: 'Feliz cumpleaños',
     subtitulo: 'Te amo🫀',
-    gifInicio: 'imgs/cumple.gif',          // Ej: 'osos.gif'  (misma carpeta que este HTML). Vacío = emoji 🧸
-    musica: '',             // Ej: 'cancion.mp3'. Vacío = melodía suave generada
+    gifInicio: 'imgs/cumple.gif',         
+    musica: '',             
     firma: '— Con todo mi amor 💗',
     galaxias: ['Galaxia Amor', 'Galaxia del mañana'],
 
-    // ---- Palabras flotantes de la GALAXIA ROSA ----
+    
     palabras: [
         { t: 'CORAZÓN', titulo: 'Mi corazón es tuyo', texto: 'Desde el día que llegaste, mi corazón dejó de ser mío.\nLate con tu nombre, y no pienso pedirlo de vuelta.' },
         { t: 'CONTIGO SIEMPRE', titulo: 'Contigo siempre', texto: 'Cuando el día es largo o el mundo pesa,\ncontigo siempre es el mejor lugar donde puedo estar.' },
@@ -339,7 +339,6 @@ const CONFIG = {
         { t: 'EROS', titulo: 'Eros', texto: 'Quizá amar sea reconocer algo hermoso en alguien\ny querer conocerlo cada vez más profundamente.'}
     ],
 
-    // ---- Palabras flotantes de la GALAXIA AZUL ----
     palabras2: [
         { t: 'ARETÉ', titulo: 'Areté', texto: 'No se trata de ser perfecta.\nSe trata de acercarte cada día a quien quieres llegar a ser ,\n la perfección no se mide en cómo te vez,\n si no en como logras verte tu cada día .'},
         { t: 'TÚ', titulo: 'Tú', texto: 'Todavía no sabes cuántas versiones de ti\nte quedan por conocer, así que tenemos mucho por lo cual celebrar.'},
@@ -357,11 +356,8 @@ const CONFIG = {
         { t: 'CRECER', titulo: 'Crecer', texto: 'Algún día mirarás hacia atrás\ny descubrirás que ya eres alguien que antes soñabas ser.'}
     ],
 
-    // ---- Planetas (al tocarlos viajas hasta ellos en la nave) ----
-    // fondo: (opcional) imagen que se abre de fondo al llegar, ej: fondo: 'playa.jpg'
-    // galaxia: 1 = Rosa, 2 = Azul · kind: 0 rosa con anillo, 1 océano, 2 violeta, 3 atardecer, 4 hielo, 5 dorado
 planetas: [
-    { galaxia: 1, kind: 0, fondo: 'imgs/elysia.PNG', titulo: 'Elysia',
+    { galaxia: 1, kind: 0, fondo: 'imgs/elysia.png', titulo: 'Elysia',
         texto: 'Un planeta cubierto de jardines interminables,\ndonde las flores crecen incluso entre las ruinas antiguas.\nDicen que aquí el tiempo avanza más despacio,\ncomo si el mundo quisiera darte unos minutos más para contemplarlo.\nQuizá por eso este lugar recuerda que algunas cosas bonitas\nsolo necesitan tiempo para florecer.'},
     { galaxia: 1, kind: 1, fondo:'imgs/thalassa.PNG', titulo: 'Thalassa',
         texto: 'Casi todo este planeta está cubierto por un océano profundo y transparente.\nBajo su superficie existen ciudades antiguas que nadie ha conseguido explorar por completo.\nDesde la orilla, el horizonte parece infinito.\nTal vez el mar nos recuerda que conocer algo de verdad\nsignifica aceptar que siempre quedará algo por descubrir juntos.'},
@@ -379,10 +375,6 @@ planetas: [
         texto: 'Un mundo oscuro donde el cielo permanece lleno de estrellas incluso durante el día.\nDesde cualquier punto de su superficie pueden observarse miles de galaxias lejanas.\nLos antiguos astrónomos de Astraea decían que mirar el cielo era recordar algo sencillo:\nque todavía existe muchísimo más allá de aquello que conocemos.'}
 ],
 
-    // ---- Planetas-foto: al tocarlos la nave viaja y TU IMAGEN se abre de fondo ----
-    // Pon tu imagen en "src" (misma carpeta que este HTML). Vacío = sticker "te amo".
-    // "fondo" es opcional: si quieres que el fondo sea otra imagen distinta a la del planeta.
-    // "galaxia" es opcional (1 Rosa / 2 Azul). Si no lo pones, las 3 primeras van a la Rosa y el resto a la Azul.
     fotos: [
         { src: 'imgs/avatar.jpg', titulo: 'Seguir descubriendo', texto: 'Nunca te acostumbres demasiado al mundo.\nTodavía existen mares que no has visto,\nlugares que no conoces y preguntas que aún no has pensado.\n\nA veces crecer significa olvidar cómo mirar el mundo.\nQue nunca pierdas esa parte de ti que todavía sabe encontrar maravillas\nen lugares que otros aprendieron a ignorar.'},
         { src: 'imgs/odisea.jpeg', titulo: 'La Odisea de tu vida', texto: 'Nadie conoce el verdadero propósito de un viaje mientras lo está viviendo.\nTal vez el sentido aparezca únicamente cuando,\naños después, miramos hacia atrás y comprendemos todo lo que nos convirtió en quienes somos.' },
@@ -391,7 +383,6 @@ planetas: [
         { src: 'imgs/dos.jpg', titulo: 'El hogar', texto: 'Quizá estar lejos no siempre significa haberse ido.\nHay lugares que dejamos atrás y,\nsin embargo, continúan viajando con nosotros,\ncomo una pequeña coordenada perdida en la inmensidad del universo.' }
     ],
 
-    // Mensajes cortos para las estrellas ✦
     estrellas: [
         'Como diría Aristóteles, la vida no se trata solamente de existir, sino de vivir bien. Que este nuevo año te acerque cada vez más a la vida que sueñas.',
         'Los griegos hablaban del viaje como una forma de encontrarse a uno mismo. Quizá cada cumpleaños sea otra pequeña Odisea: un nuevo comienzo, nuevos mares y nuevas tierras por descubrir.',
@@ -484,7 +475,7 @@ function project(x, y, z) {
 
 function makeGalaxy(o) {
     const parts = [], R = o.R;
-    for (let i = 0; i < o.N; i++) {                          // brazos espirales
+    for (let i = 0; i < o.N; i++) {                         
         const arm = i % o.arms;
         const u = Math.pow(Math.random(), 0.72), r = 40 + u * R, rn = r / R;
         const ang = arm * (TAU / o.arms) + r * o.twist + (0.5 * (1 - rn) + 0.1) * gauss() * 1.25;
@@ -493,12 +484,12 @@ function makeGalaxy(o) {
             y: gauss() * (14 * (1 - rn) + 3),
             c: clamp(Math.floor(rn * 7 + Math.random() * 2.2 - 0.6), 0, 7), s: rnd(2.2, 5.4) });
     }
-    for (let i = 0; i < o.core; i++) {                        // núcleo
+    for (let i = 0; i < o.core; i++) {                       
         const a = Math.random() * TAU, r = Math.abs(gauss()) * 110;
         parts.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, y: gauss() * 14,
             c: Math.floor(Math.random() * 3), s: rnd(2.4, 5) });
     }
-    for (let i = 0; i < o.dust; i++) {                        // polvo
+    for (let i = 0; i < o.dust; i++) {                  
         const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * R * 1.18;
         parts.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, y: gauss() * 22,
             c: 3 + Math.floor(Math.random() * 5), s: rnd(1.6, 3.2) });
@@ -521,16 +512,16 @@ const G = [
         N: 4300, core: 900, dust: 1400,
         pal: ['255,250,220','255,236,170','190,255,245','120,235,255','110,190,255','140,150,255','190,130,255','240,130,230'] })
 ];
-let cur = 0;                                                  // galaxia actual
+let cur = 0;                                            
 
-// Agujero negro (galaxia rosa)
+
 const disk = [];
 for (let i = 0; i < 700; i++) {
     const a = Math.random() * TAU, r = rnd(17, 50);
     disk.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, y: gauss() * 1.6, s: rnd(2, 4.4), b: i % 2 });
 }
 
-// Estrellas de fondo (cielo que sigue a la cámara)
+
 const bgStars = [];
 for (let i = 0; i < 2400; i++) {
     const th = Math.random() * TAU, ph = Math.acos(rnd(-1, 1)), R = 4200;
@@ -538,7 +529,7 @@ for (let i = 0; i < 2400; i++) {
         s: rnd(1, 2.6), p: Math.random() * TAU });
 }
 
-// Emblemas de partículas: corazón (rosa) e infinito (azul)
+
 function buildEmblem(kind) {
     const pts = [];
     if (kind === 0) {
@@ -600,7 +591,6 @@ function makeStarSprite(col) {
     return c;
 }
 
-// planeta-foto: tu imagen dentro de una esfera con brillo atmosférico
 function makePhotoItem(src) {
     const S = 288, c = document.createElement('canvas'), g = c.getContext('2d');
     c.width = c.height = S;
@@ -637,7 +627,7 @@ function makePhotoItem(src) {
     return { spr: c, fallback };
 }
 
-// planetas procedurales
+
 const PKINDS = [
     { a: '#ffb8dd', b: '#e0559f', glow: '255,120,190', bands: 1, ring: '255,225,240', tint: '255,110,185' },
     { a: '#8fdcff', b: '#1f5fc4', glow: '110,200,255', clouds: 1, tint: '90,170,255' },
@@ -689,7 +679,7 @@ function makePlanetSprite(kd) {
     return c;
 }
 
-// portal (remolino que lleva a la otra galaxia)
+
 function makePortalSprite(theme) {
     const S = 256, c = document.createElement('canvas'), g = c.getContext('2d');
     c.width = c.height = S;
@@ -731,7 +721,7 @@ function buildItems() {
                 r: g.R * 0.36 + ((k * 67) % (g.R * 0.56)), a: k * 2.399 + gi, w: g.spin + rnd(-0.008, 0.012),
                 y: ((k % 3) - 1) * 20, ph: Math.random() * TAU, titulo: w.titulo, texto: w.texto });
         }
-        // planetas-foto
+
         let pc = 0;
         CONFIG.fotos.forEach((f, i) => {
             const fg = (f.galaxia || (i < 3 ? 1 : 2)) - 1;
@@ -742,7 +732,6 @@ function buildItems() {
                 y: 20 + (pc % 2) * 24, ph: Math.random() * TAU, titulo: f.titulo, texto: f.texto });
             pc++;
         });
-        // planetas procedurales
         let qc = 0;
         CONFIG.planetas.forEach(pl => {
             if (pl.galaxia - 1 !== gi) return;
@@ -752,14 +741,13 @@ function buildItems() {
                 y: ((qc % 3) - 1) * 28, ph: Math.random() * TAU, titulo: pl.titulo, texto: pl.texto });
             qc++;
         });
-        // estrellas
         for (let i = 0; i < (gi === 0 ? 26 : 22); i++) {
             items.push({ type: 'star', g: gi, spr: starSprites[i % 4], k: rnd(1.0, 1.5),
                 r: rnd(90, g.R), a: Math.random() * TAU, w: g.spin + rnd(-0.008, 0.012),
                 y: rnd(-20, 240), ph: Math.random() * TAU,
                 titulo: '✦', texto: CONFIG.estrellas[(i + gi * 3) % CONFIG.estrellas.length] });
         }
-        // portal hacia la otra galaxia
+
         const o = G[1 - gi];
         items.push({ type: 'portal', g: gi, spr: makePortalSprite(1 - gi), k: 0.85,
             lbl: makeWordSprite('→ ' + o.name.toUpperCase(), 1 - gi, 40),
@@ -816,7 +804,6 @@ function drawShip(t, dt, alpha, thrust) {
     const by = H * 0.76 + Math.sin(t * 2.1) * 5 - thrust * H * 0.04 + (1 - alpha) * H * 0.14;
     const roll = Math.sin(t * 1.1) * 0.07 + Math.sin(t * 0.5) * 0.05 + Math.sin(t * 0.8) * thrust * 0.05;
 
-    // chispas del motor
     ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < 2; i++) sparks.push({ x: bx + rnd(-0.25, 0.25) * u, y: by + u * 1.05, vx: rnd(-25, 25),
         vy: rnd(90, 220) * (1 + thrust), life: 1, c: Math.random() < 0.5 ? '255,205,150' : '255,140,200' });
@@ -834,7 +821,6 @@ function drawShip(t, dt, alpha, thrust) {
     g.addColorStop(0, 'rgba(255,140,210,0.32)'); g.addColorStop(1, 'rgba(255,140,210,0)');
     ctx.fillStyle = g; ctx.fillRect(-2.6, -2, 5.2, 5.2);
 
-    // llamas
     ctx.globalCompositeOperation = 'lighter';
     const fl = 0.9 + 0.3 * Math.sin(t * 38) + 0.2 * Math.random(), len = (1.1 + thrust * 1.7) * fl;
     for (const sx of [-0.2, 0.2]) {
@@ -845,7 +831,6 @@ function drawShip(t, dt, alpha, thrust) {
     }
     ctx.globalCompositeOperation = 'source-over';
 
-    // alas
     for (const side of [1, -1]) {
         ctx.save(); ctx.scale(side, 1);
         g = ctx.createLinearGradient(-0.3, 0.1, -1.2, 0.9);
@@ -856,7 +841,6 @@ function drawShip(t, dt, alpha, thrust) {
         ctx.moveTo(-0.34, 0.12); ctx.lineTo(-1.0, 0.72); ctx.lineTo(-0.34, 0.34); ctx.closePath(); ctx.fill();
         ctx.restore();
     }
-    // cuerpo
     g = ctx.createLinearGradient(-0.4, 0, 0.4, 0);
     g.addColorStop(0, '#d9ceff'); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, '#b9a4ff');
     ctx.fillStyle = g; ctx.beginPath();
@@ -864,18 +848,16 @@ function drawShip(t, dt, alpha, thrust) {
     ctx.lineTo(-0.32, 0.92); ctx.bezierCurveTo(-0.5, 0.5, -0.52, -0.7, 0, -1.28); ctx.closePath(); ctx.fill();
     ctx.lineWidth = 0.035; ctx.strokeStyle = 'rgba(120,80,200,0.55)'; ctx.stroke();
     ctx.fillStyle = '#4b3a7a'; ctx.fillRect(-0.3, 0.9, 0.2, 0.14); ctx.fillRect(0.1, 0.9, 0.2, 0.14);
-    // cabina
     g = ctx.createRadialGradient(-0.04, -0.45, 0.02, 0, -0.35, 0.3);
     g.addColorStop(0, '#e8fdff'); g.addColorStop(0.5, '#6fd8ff'); g.addColorStop(1, '#2a5fc4');
     ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -0.35, 0.17, 0.28, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(-0.06, -0.46, 0.04, 0.09, -0.3, 0, TAU); ctx.fill();
-    // corazoncito en el casco
     ctx.fillStyle = '#ff5fa8'; ctx.beginPath();
     ctx.moveTo(0, 0.56); ctx.bezierCurveTo(-0.24, 0.34, -0.12, 0.14, 0, 0.3); ctx.bezierCurveTo(0.12, 0.14, 0.24, 0.34, 0, 0.56); ctx.fill();
     ctx.restore();
 }
 
-let mode = 'idle';            // idle | travel | fly | landed | return
+let mode = 'idle';         
 let flight = null, retT0 = 0, yawFx = 0, pitchFx = 0, fxWarp = 0, shipA = 0;
 let started = false, tStart = 0, interactive = false, lastTs = 0;
 const t0 = performance.now();
@@ -1050,7 +1032,7 @@ function frame(ts) {
     const t = (ts - t0) / 1000;
     const dt = Math.min(0.05, (ts - lastTs) / 1000 || 0.016); lastTs = ts;
 
-    // Línea de tiempo de la intro
+
     let gA = 1, wA = 0, introD = null;
     if (started) {
         const u = t - tStart;
@@ -1085,7 +1067,7 @@ function frame(ts) {
         ctx.globalAlpha = gA;
         setCam(yawE);
 
-        // cielo de estrellas
+    
         ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,255,255,.75)';
         for (const s of bgStars) {
             if (!project(cam.x + s.x, cam.y + s.y, cam.z + s.z)) continue;
@@ -1094,7 +1076,7 @@ function frame(ts) {
             ctx.fillRect(PX, PY, sz, sz);
         }
 
-        // galaxias
+   
         for (let gi = 0; gi < 2; gi++) {
             const g = G[gi];
             ctx.globalCompositeOperation = 'lighter';
@@ -1103,7 +1085,6 @@ function frame(ts) {
             drawEmblem(g, gi, t, canTap);
         }
 
-        // palabras / fotos / planetas / estrellas / portales
         ctx.globalCompositeOperation = 'source-over';
         const vis = [];
         for (const it of items) {
@@ -1137,14 +1118,12 @@ function frame(ts) {
         }
     }
 
-    // nave y efectos de viaje
     ctx.globalAlpha = 1;
     drawStreaks(dt, fxWarp);
     const shipTarget = (mode === 'travel' || mode === 'fly' || mode === 'return') ? 1 : 0;
     shipA += (shipTarget - shipA) * Math.min(1, dt * 4.5);
     if (shipA > 0.02) drawShip(t, dt, shipA, fxWarp);
 
-    // destellos al tocar
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter';
     for (let i = bursts.length - 1; i >= 0; i--) {
         const b = bursts[i]; b.life -= dt * 1.4;
@@ -1235,7 +1214,6 @@ function openModal(it, origin) {
     mText.textContent = '';
     const bgMode = !!origin && (it.type === 'photo' || it.type === 'planet');
 
-    // imagen pequeña (solo si es planeta-foto sin imagen o con imagen que no carga)
     mImg.style.display = 'none'; mImg.removeAttribute('src');
     if (it.type === 'photo' && !it.src && !it.fondo) { mImg.style.display = 'block'; mImg.src = it.fallback; }
 
