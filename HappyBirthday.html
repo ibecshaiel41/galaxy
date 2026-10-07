@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>galaxia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; }
+    html, body {
+        margin: 0; padding: 0; height: 100%;
+        background: #000; overflow: hidden;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        -webkit-tap-highlight-color: transparent;
+    }
+    #bg-canvas {
+        position: fixed; inset: 0;
+        width: 100vw; height: 100vh;
+        display: block; z-index: 0; cursor: grab;
+        touch-action: none;
+    }
+    #bg-canvas:active { cursor: grabbing; }
+    #bg-canvas.can-tap { cursor: pointer; }
+
+    :root {
+        --start-ink: #f8f4ff; --start-mist: #d8cbff;
+        --start-accent: #ff78c7; --start-accent-2: #7dd8ff;
+        --start-panel: rgba(13,7,28,0.62); --start-stroke: rgba(255,255,255,0.24);
+    }
+
+    #start-overlay {
+        position: fixed; inset: 0; z-index: 20;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        background:
+            radial-gradient(70% 55% at 15% 100%, rgba(255,80,170,0.2), transparent 68%),
+            radial-gradient(60% 45% at 90% 10%, rgba(90,120,255,0.24), transparent 70%),
+            radial-gradient(120% 100% at 50% 50%, rgba(35,15,75,0.8), rgba(4,2,12,0.98));
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    #start-overlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    #start-overlay::before, #start-overlay::after {
+        content: ""; position: absolute;
+        width: 46vmax; height: 46vmax;
+        border-radius: 50%; filter: blur(40px);
+        pointer-events: none; opacity: 0.32;
+        animation: startDrift 8s ease-in-out infinite;
+    }
+    #start-overlay::before {
+        left: -12vmax; bottom: -18vmax;
+        background: radial-gradient(circle, rgba(255,100,180,0.75), transparent 65%);
+    }
+    #start-overlay::after {
+        right: -15vmax; top: -15vmax;
+        background: radial-gradient(circle, rgba(90,185,255,0.72), transparent 66%);
+        animation-delay: -4s;
+    }
+    @keyframes startDrift {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(4vmax, -3vmax) scale(1.12); }
+    }
+
+    #start-card {
+        position: relative; z-index: 2; text-align: center;
+        color: var(--start-ink); width: min(92vw, 760px);
+        padding: clamp(28px,5vw,54px) clamp(24px,5vw,62px);
+        border: 1px solid var(--start-stroke); border-radius: 28px;
+        background:
+            linear-gradient(160deg, rgba(255,255,255,0.08), transparent 42%),
+            linear-gradient(20deg, rgba(255,120,199,0.1), rgba(125,216,255,0.05)),
+            var(--start-panel);
+        box-shadow: 0 35px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.26);
+        animation: cardFloat 4.5s ease-in-out infinite;
+    }
+    @keyframes cardFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+    }
+    #start-title {
+        margin: 0; font-family: 'Playfair Display', Georgia, serif;
+        font-weight: 900; font-size: clamp(2.2rem, 9vw, 4.2rem);
+        line-height: 1.05; letter-spacing: -0.01em;
+        text-shadow: 0 0 28px rgba(255,150,220,0.55);
+    }
+    #start-gif {
+        width: clamp(170px,32vw,260px); height: clamp(170px,32vw,260px);
+        object-fit: contain; border-radius: 0;
+        margin: 12px auto 16px; display: block; border: 0; background: transparent;
+    }
+    .start-emoji {
+        font-size: clamp(90px, 20vw, 150px); line-height: 1.1;
+        margin: 12px auto 16px; filter: drop-shadow(0 0 22px rgba(255,120,199,.6));
+    }
+    #start-sub {
+        margin: 0 0 22px; font-size: clamp(.68rem, 2.4vw, .85rem);
+        letter-spacing: .22em; color: var(--start-mist);
+    }
+    #start-btn {
+        font-family: inherit; font-weight: 700; letter-spacing: .2em;
+        font-size: .8rem; color: var(--start-ink); cursor: pointer;
+        padding: 14px 34px; border-radius: 999px;
+        border: 1px solid rgba(190,170,255,.7);
+        background: linear-gradient(135deg, #5a2a8f, #3c3a99);
+        box-shadow: 0 0 26px rgba(255,120,199,.45);
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+    #start-btn:hover { transform: scale(1.06); box-shadow: 0 0 38px rgba(255,120,199,.75); }
+    #start-btn:active { transform: scale(.97); }
+
+    .hud-btn {
+        position: fixed; z-index: 15;
+        top: calc(18px + env(safe-area-inset-top, 0px));
+        width: 46px; height: 46px; border-radius: 50%;
+        display: grid; place-items: center; cursor: pointer;
+        border: 1px solid rgba(255,255,255,.35); color: #fff; padding: 0;
+        opacity: 0; pointer-events: none;
+        transition: opacity .8s ease, transform .2s ease;
+    }
+    body.live .hud-btn { opacity: 1; pointer-events: auto; }
+    .hud-btn:active { transform: scale(.92); }
+    .hud-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    #fs-btn {
+        left: calc(18px + env(safe-area-inset-left, 0px));
+        background: linear-gradient(135deg, #9a65dd, #5b4aa8);
+        box-shadow: 0 0 18px rgba(154,101,221,.5);
+    }
+    .music-btn {
+        right: calc(18px + env(safe-area-inset-right, 0px));
+        background: #e8335f; box-shadow: 0 0 18px rgba(232,51,95,.6);
+    }
+
+    #warp-btn {
+        position: fixed; z-index: 15; left: 50%; transform: translateX(-50%);
+        bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+        padding: 12px 22px; border-radius: 999px; white-space: nowrap;
+        border: 1px solid rgba(190,170,255,.65);
+        background: linear-gradient(135deg, rgba(90,42,143,.88), rgba(60,58,153,.88));
+        color: #fff; font-family: inherit; font-weight: 700; font-size: .74rem; letter-spacing: .1em;
+        cursor: pointer; box-shadow: 0 0 24px rgba(255,120,199,.4);
+        opacity: 0; pointer-events: none; transition: opacity .6s ease, box-shadow .2s ease;
+    }
+    #warp-btn:hover { box-shadow: 0 0 36px rgba(255,120,199,.75); }
+    body.live.ready #warp-btn { opacity: 1; pointer-events: auto; }
+    body.busy #warp-btn, body.busy #hint { opacity: 0 !important; pointer-events: none !important; }
+
+    #hint {
+        position: fixed; z-index: 10; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%); width: max-content; max-width: 90vw;
+        padding: 10px 18px; border-radius: 999px; text-align: center;
+        font-size: .72rem; letter-spacing: .08em; color: var(--start-mist);
+        background: rgba(13,7,28,.6); border: 1px solid var(--start-stroke);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        opacity: 0; pointer-events: none; transition: opacity 1s ease;
+    }
+    #hint.show { opacity: 1; }
+
+    #flight-label {
+        position: fixed; z-index: 16; left: 50%;
+        top: calc(78px + env(safe-area-inset-top, 0px));
+        transform: translateX(-50%) translateY(-6px);
+        padding: 9px 20px; border-radius: 999px;
+        font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 1rem;
+        color: #ffe6f6; background: rgba(13,7,28,.55); border: 1px solid var(--start-stroke);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        opacity: 0; pointer-events: none; white-space: nowrap; max-width: 92vw;
+        overflow: hidden; text-overflow: ellipsis;
+        transition: opacity .6s ease, transform .6s ease;
+    }
+    #flight-label.show { opacity: 1; transform: translateX(-50%); }
+
+    #modal {
+        position: fixed; inset: 0; z-index: 40;
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px; overflow: hidden;
+        background: rgba(6,0,18,.55);
+        backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+        opacity: 0; visibility: hidden;
+        transition: opacity .35s ease, visibility .35s ease;
+    }
+    #modal.open { opacity: 1; visibility: visible; }
+
+    #m-bg {
+        position: absolute; inset: 0; z-index: 0;
+        background-size: cover; background-position: center; background-repeat: no-repeat;
+        clip-path: circle(0px at 50% 50%);
+        transition: clip-path 1.25s cubic-bezier(.2,.75,.2,1);
+        display: none;
+    }
+    #m-bg::after {
+        content: ""; position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(6,0,18,.35) 0%, rgba(6,0,18,0) 30%, rgba(6,0,18,0) 52%, rgba(6,0,18,.78) 100%);
+    }
+    #modal.has-bg {
+        background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
+        align-items: flex-end; padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+    }
+    #modal.has-bg #m-bg { display: block; }
+
+    #modal-card {
+        position: relative; z-index: 1;
+        width: min(92vw, 520px); max-height: 86vh; overflow-y: auto;
+        text-align: center; color: var(--start-ink);
+        padding: 34px 28px 28px;
+        border: 1px solid rgba(255,255,255,.28); border-radius: 28px;
+        background:
+            linear-gradient(160deg, rgba(255,255,255,.09), transparent 45%),
+            linear-gradient(20deg, rgba(255,120,199,.14), rgba(125,216,255,.06)),
+            rgba(18,8,38,.86);
+        box-shadow: 0 30px 80px rgba(0,0,0,.65), 0 0 60px rgba(255,100,190,.25), inset 0 1px 0 rgba(255,255,255,.3);
+        transform: scale(.82) translateY(24px);
+        transition: transform .5s cubic-bezier(.2,1.3,.4,1);
+    }
+    #modal.open #modal-card { transform: none; }
+    #modal.has-bg #modal-card {
+        padding: 26px 24px 22px;
+        background:
+            linear-gradient(160deg, rgba(255,255,255,.1), transparent 45%),
+            rgba(14,6,30,.5);
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    #m-img {
+        display: none; width: 150px; height: 150px; margin: 0 auto 16px;
+        border-radius: 50%; object-fit: cover; background: #fff;
+        border: 3px solid rgba(255,150,210,.85);
+        box-shadow: 0 0 28px rgba(255,120,199,.6);
+    }
+    #m-title {
+        margin: 0 0 14px; font-family: 'Playfair Display', Georgia, serif;
+        font-weight: 900; font-size: clamp(1.5rem, 6vw, 2.1rem); line-height: 1.15;
+        background: linear-gradient(90deg, #ffd1ec, #ff8fd0, #bda8ff);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 12px rgba(255,120,199,.4));
+    }
+    #m-text {
+        margin: 0 0 18px; min-height: 5.4em; white-space: pre-line;
+        font-family: 'Dancing Script', 'Playfair Display', cursive;
+        font-weight: 500; font-size: clamp(1.35rem, 5.4vw, 1.75rem); line-height: 1.45;
+        color: #fbeaff;
+    }
+    #m-sign {
+        margin: 0; font-family: 'Playfair Display', Georgia, serif;
+        font-style: italic; font-size: .95rem; color: var(--start-mist);
+    }
+    #m-close {
+        position: absolute; top: 12px; right: 12px; width: 36px; height: 36px;
+        border-radius: 50%; border: 1px solid rgba(255,255,255,.3);
+        background: rgba(255,255,255,.08); color: #fff; font-size: 1rem; cursor: pointer;
+    }
+    #m-close:hover { background: rgba(255,120,199,.35); }
+    #hearts { position: fixed; inset: 0; z-index: 45; pointer-events: none; overflow: hidden; }
+    .rise {
+        position: absolute; bottom: -40px; opacity: 0;
+        animation: rise var(--d, 3s) ease-in forwards;
+    }
+    @keyframes rise {
+        0% { transform: translate(0,0) scale(.6); opacity: 0; }
+        15% { opacity: .95; }
+        100% { transform: translate(var(--dx, 0px), -105vh) scale(1.3) rotate(var(--r, 0deg)); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #start-card, #start-overlay::before, #start-overlay::after { animation: none; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- INICIO -->
+<div id="start-overlay">
+    <div id="start-card">
+        <h1 id="start-title"></h1>
+        <div id="start-media"></div>
+        <p id="start-sub"></p>
+        <button id="start-btn" type="button">INICIAR</button>
+    </div>
+</div>
+
+<!-- BOTONES -->
+<button id="fs-btn" class="hud-btn" type="button" aria-label="Pantalla completa">
+    <svg viewBox="0 0 24 24"><path d="M3 3h7v2H5v5H3V3zm11 0h7v7h-2V5h-5V3zM3 14h2v5h5v2H3v-7zm16 0h2v7h-7v-2h5v-5z"/></svg>
+</button>
+<button id="music-btn" class="hud-btn music-btn" type="button" aria-label="Música"></button>
+<button id="warp-btn" type="button"></button>
+
+<div id="flight-label"></div>
+<div id="hint">Toca los planetas para viajar 🛸 </div>
+
+<!-- TEXTO LINDO -->
+<div id="modal" aria-hidden="true">
+    <div id="m-bg"></div>
+    <div id="modal-card" role="dialog" aria-modal="true">
+        <button id="m-close" type="button" aria-label="Cerrar">✕</button>
+        <img id="m-img" alt="" />
+        <h2 id="m-title"></h2>
+        <p id="m-text"></p>
+        <p id="m-sign"></p>
+    </div>
+</div>
+<div id="hearts"></div>
+
+<script>
+(() => {
+'use strict';
+
+const CONFIG = {
+    titulo: 'Feliz cumpleaños',
+    subtitulo: 'Te amo🫀',
+    gifInicio: 'imgs/cumple.gif',          // Ej: 'osos.gif'  (misma carpeta que este HTML). Vacío = emoji 🧸
+    musica: '',             // Ej: 'cancion.mp3'. Vacío = melodía suave generada
+    firma: '— Con todo mi amor 💗',
+    galaxias: ['Galaxia Amor', 'Galaxia del mañana'],
+
+    // ---- Palabras flotantes de la GALAXIA ROSA ----
+    palabras: [
+        { t: 'CORAZÓN', titulo: 'Mi corazón es tuyo', texto: 'Desde el día que llegaste, mi corazón dejó de ser mío.\nLate con tu nombre, y no pienso pedirlo de vuelta.' },
+        { t: 'CONTIGO SIEMPRE', titulo: 'Contigo siempre', texto: 'Cuando el día es largo o el mundo pesa,\ncontigo siempre es el mejor lugar donde puedo estar.' },
+        { t: 'INFINITO', titulo: 'Infinito', texto: 'Si pudiera contar cuánto te quiero,\nlos números se acabarían primero.' },
+        { t: 'ETERNO', titulo: 'Eterno', texto: 'No sé qué significa para siempre,\npero sé que hay momentos contigo que quisiera conservar más allá del tiempo.'},
+        { t: 'TE AMO', titulo: 'Te amo', texto: 'Decirlo es sencillo.\nLo difícil es explicar todo lo que esas dos palabras pueden llegar a contener.'},
+        { t: 'PRINCESA', titulo: 'Mi princesita', texto: 'Eres mi cuento favorito,\nla parte bonita de cada uno de mis días.' },
+        { t: 'UNIVERSO', titulo: 'Eres mi universo', texto: 'Podría recorrer mil galaxias\ny aun así mi lugar favorito seguiría siendo a tu lado.' },
+        { t: 'MI PERSONA', titulo: 'Mi persona favorita', texto: 'Entre tanta gente en el mundo,\nmi corazón te eligió a ti. Y volvería a elegirte siempre.' },
+        { t: 'EXISTIR', titulo: 'Gracias por existir', texto: 'Gracias por tu risa, tu paciencia y tu forma de quererme , \ngracias por los momentos juntos y \nlas enseñanzas que nos hemos dado.\n' },
+        { t: 'TÚ', titulo: 'Siempre tú', texto: 'Si tuviera que empezar de nuevo,\nme gustaría volver a encontrarte a ti.' },
+        { t: 'PHILIA', titulo: 'Philia', texto: 'Aristóteles entendía el cariño como algo que también nace\nde admirar, comprender y querer el bien del otro.'},
+        { t: 'PLATÓN', titulo: 'Platón', texto: 'Quizá por eso algunas personas nos despiertan algo extraño:\nla sensación de haber encontrado algo que no sabíamos que buscábamos.'},
+        { t: 'ARISTÓTELES', titulo: 'Aristóteles', texto: 'Amar también es alegrarse por la existencia del otro,\nno solo por lo que esa persona puede darnos.'},
+        { t: 'EROS', titulo: 'Eros', texto: 'Quizá amar sea reconocer algo hermoso en alguien\ny querer conocerlo cada vez más profundamente.'}
+    ],
+
+    // ---- Palabras flotantes de la GALAXIA AZUL ----
+    palabras2: [
+        { t: 'ARETÉ', titulo: 'Areté', texto: 'No se trata de ser perfecta.\nSe trata de acercarte cada día a quien quieres llegar a ser ,\n la perfección no se mide en cómo te vez,\n si no en como logras verte tu cada día .'},
+        { t: 'TÚ', titulo: 'Tú', texto: 'Todavía no sabes cuántas versiones de ti\nte quedan por conocer, así que tenemos mucho por lo cual celebrar.'},
+        { t: 'MELTEMI', titulo: 'Meltemi', texto: 'El viento no pregunta hacia dónde queremos ir.\nA veces simplemente nos enseña a navegar.'},
+        { t: 'ÍTACA', titulo: 'Ítaca', texto: 'Quizá lo importante de llegar algún día\nsea todo lo que aprendiste mientras estabas lejos.'},
+        { t: 'ÍCARO', titulo: 'Ícaro', texto: 'No siempre es la altura lo que importa,\nsino haber tenido el valor de mirar hacia arriba.'},
+        { t: 'ODISEA', titulo: 'La Odisea', texto: 'No todos los caminos existen para llevarnos a un lugar.\nAlgunos existen para mostrarnos quiénes somos.'},
+        { t: 'ARGOS', titulo: 'Argos', texto: 'Hay cosas que el tiempo puede alejar,\npero no necesariamente borrar.'},
+        { t: 'LEJOS', titulo: 'Lejos', texto: 'Hay lugares que todavía no conoces\ny versiones de ti que solo existen allí.'},
+        { t: 'TE AMO', titulo: 'Te amo', texto: 'Dos palabras pequeñas para algo tan inmenso.\nTe amo hoy, mañana y en todas las vidas que existan.' },
+        { t: 'NÁUFRAGO', titulo: 'Náufrago', texto: 'A veces perder el rumbo\nes la primera forma de encontrar otro, no te pierdas encontrando un rumbo.'},
+        { t: 'SÍSIFO', titulo: 'Sísifo', texto: 'Quizá avanzar no siempre sea llegar más lejos,\nsino volver a intentarlo con una mirada distinta.'},
+        { t: 'SELENE', titulo: 'Selene', texto: 'La luna nunca deja de cambiar,\ny aun así seguimos reconociéndola.'},
+        { t: 'PREGUNTAS', titulo: 'Preguntas', texto: 'Nunca tengas miedo de no tener respuestas.\nLas mejores historias suelen comenzar con una pregunta.'},
+        { t: 'CRECER', titulo: 'Crecer', texto: 'Algún día mirarás hacia atrás\ny descubrirás que ya eres alguien que antes soñabas ser.'}
+    ],
+
+    // ---- Planetas (al tocarlos viajas hasta ellos en la nave) ----
+    // fondo: (opcional) imagen que se abre de fondo al llegar, ej: fondo: 'playa.jpg'
+    // galaxia: 1 = Rosa, 2 = Azul · kind: 0 rosa con anillo, 1 océano, 2 violeta, 3 atardecer, 4 hielo, 5 dorado
+planetas: [
+    { galaxia: 1, kind: 0, fondo: 'imgs/elysia.png', titulo: 'Elysia',
+        texto: 'Un planeta cubierto de jardines interminables,\ndonde las flores crecen incluso entre las ruinas antiguas.\nDicen que aquí el tiempo avanza más despacio,\ncomo si el mundo quisiera darte unos minutos más para contemplarlo.\nQuizá por eso este lugar recuerda que algunas cosas bonitas\nsolo necesitan tiempo para florecer.'},
+    { galaxia: 1, kind: 1, fondo:'imgs/thalassa.PNG', titulo: 'Thalassa',
+        texto: 'Casi todo este planeta está cubierto por un océano profundo y transparente.\nBajo su superficie existen ciudades antiguas que nadie ha conseguido explorar por completo.\nDesde la orilla, el horizonte parece infinito.\nTal vez el mar nos recuerda que conocer algo de verdad\nsignifica aceptar que siempre quedará algo por descubrir juntos.'},
+    { galaxia: 1, kind: 3, fondo:'imgs/aurelia.PNG', titulo: 'Aurelia',
+        texto: 'Su atmósfera convierte cada atardecer en un espectáculo de colores imposibles.\nDurante unos minutos, todo el planeta parece quedar suspendido entre el día y la noche.\nLos habitantes de Aurelia llaman a ese momento “la hora que no pertenece a ningún mundo”.\nQuizá porque algunas cosas hermosas existen precisamente entre dos momentos inolvidables.'},
+    { galaxia: 1, kind: 2, fondo:'imgs/lumen.jpg', titulo: 'Lumen',
+        texto: 'Un pequeño planeta cubierto por bosques violetas que brillan durante la noche.\nSus plantas almacenan la luz del día y la devuelven lentamente cuando todo queda oscuro.\nAquí nadie teme demasiado a la noche,\nporque saben que incluso la oscuridad puede guardar su propia forma de luz.'},
+    { galaxia: 2, kind: 4, fondo:'imgs/nivaria.jpg', titulo: 'Nivaria',
+        texto: 'Un mundo cubierto de hielo donde las montañas parecen extenderse hasta el cielo.\nA pesar de su frío extremo, bajo la superficie existe un enorme océano cálido.\nNadie puede verlo desde el exterior,\npero su existencia recuerda que las apariencias nunca cuentan toda la historia.'},
+    { galaxia: 2, kind: 5, fondo:'imgs/aureum.jpg', titulo: 'Aureum',
+        texto: 'Su superficie está cubierta por minerales dorados que reflejan la luz de su estrella.\nDesde el espacio parece un pequeño sol perdido entre la oscuridad.\nPero quienes lo han visitado dicen que su verdadero valor no está en lo que brilla,\nsino en todo aquello que permanece cuando la luz desaparece.'},
+    { galaxia: 2, kind: 1, fondo:'imgs/pelagos.JPG', titulo: 'Pelagos',
+        texto: 'Un planeta donde los continentes son apenas pequeñas islas rodeadas por un océano inmenso.\nLas mareas pueden tardar meses en completar un solo ciclo.\nSus habitantes aprendieron hace mucho que el mar nunca permanece igual,\ny que cambiar de dirección no significa necesariamente haber perdido el rumbo.'},
+    { galaxia: 2, kind: 0, fondo:'imgs/astraea.jpg', titulo: 'Astraea',
+        texto: 'Un mundo oscuro donde el cielo permanece lleno de estrellas incluso durante el día.\nDesde cualquier punto de su superficie pueden observarse miles de galaxias lejanas.\nLos antiguos astrónomos de Astraea decían que mirar el cielo era recordar algo sencillo:\nque todavía existe muchísimo más allá de aquello que conocemos.'}
+],
+
+    // ---- Planetas-foto: al tocarlos la nave viaja y TU IMAGEN se abre de fondo ----
+    // Pon tu imagen en "src" (misma carpeta que este HTML). Vacío = sticker "te amo".
+    // "fondo" es opcional: si quieres que el fondo sea otra imagen distinta a la del planeta.
+    // "galaxia" es opcional (1 Rosa / 2 Azul). Si no lo pones, las 3 primeras van a la Rosa y el resto a la Azul.
+    fotos: [
+        { src: 'imgs/avatar.jpg', titulo: 'Seguir descubriendo', texto: 'Nunca te acostumbres demasiado al mundo.\nTodavía existen mares que no has visto,\nlugares que no conoces y preguntas que aún no has pensado.\n\nA veces crecer significa olvidar cómo mirar el mundo.\nQue nunca pierdas esa parte de ti que todavía sabe encontrar maravillas\nen lugares que otros aprendieron a ignorar.'},
+        { src: 'imgs/odisea.jpeg', titulo: 'La Odisea de tu vida', texto: 'Nadie conoce el verdadero propósito de un viaje mientras lo está viviendo.\nTal vez el sentido aparezca únicamente cuando,\naños después, miramos hacia atrás y comprendemos todo lo que nos convirtió en quienes somos.' },
+        { src: 'imgs/sel.PNG', titulo: 'Dieciséis años', texto: 'Dieciséis años parecen mucho para una vida,\npero nunca parecen suficientes cuando esa vida se convirtió en parte de la nuestra.\nLo que termina en el tiempo no siempre termina en nosotros.' },
+        { src: 'imgs/mar.avif', titulo: 'La profundidad', texto: 'No todo lo importante puede verse desde la superficie.\nEl océano lo sabe.\nY quizá por eso algunas de las cosas más valiosas\nsolo aparecen cuando aprendemos a conocer el mundo de verdad.' },
+        { src: 'imgs/dos.jpg', titulo: 'El hogar', texto: 'Quizá estar lejos no siempre significa haberse ido.\nHay lugares que dejamos atrás y,\nsin embargo, continúan viajando con nosotros,\ncomo una pequeña coordenada perdida en la inmensidad del universo.' }
+    ],
+
+    // Mensajes cortos para las estrellas ✦
+    estrellas: [
+        'Como diría Aristóteles, la vida no se trata solamente de existir, sino de vivir bien. Que este nuevo año te acerque cada vez más a la vida que sueñas.',
+        'Los griegos hablaban del viaje como una forma de encontrarse a uno mismo. Quizá cada cumpleaños sea otra pequeña Odisea: un nuevo comienzo, nuevos mares y nuevas tierras por descubrir.',
+        'Euclides encontró belleza en las formas y en la precisión; tú puedes encontrarla en algo mucho más grande: la forma en que construyes tu propia historia. Que este año tenga la geometría perfecta para llevarte hacia tus sueños.',
+        'El mar nunca permanece quieto y, aun así, siempre encuentra su camino. Que este nuevo año te recuerde que avanzar no siempre significa ir en línea recta.',
+        'Quizá la vida se parezca un poco al océano: no podemos conocer todas sus profundidades, pero siempre vale la pena sumergirse un poco más y explorarlas tu misma.',
+        'Gracias por formar parte de este pequeño universo de momentos y recuerdos.',
+        'La Odisea nos recuerda que llegar a casa no siempre significa volver al mismo lugar, sino descubrir quién eres después del viaje. Que este nuevo año te encuentre más cerca de quien quieres ser.',
+        'Así como las estrellas necesitan millones de años para llegar hasta nuestros ojos, algunas cosas hermosas también necesitan tiempo para llegar a nuestra vida. No tengas prisa por convertirte en todo lo que sueñas.',
+        'En física, una pequeña variación puede cambiar por completo una trayectoria. Quizá este cumpleaños sea una de esas pequeñas decisiones que cambien el rumbo de tu próximo capítulo.',
+        'Newton nos enseñó que todo movimiento tiene una causa; quizá crecer también sea aprender qué fuerzas queremos que impulsen nuestra vida. Que este año elijas las que te lleven hacia tus sueños.',
+        'Alguna vez fuiste una niña soñando con todo lo que algún día serías; hoy estás escribiendo esa historia.',
+        'Qué bonito pensar en todos los cumpleaños que viviste de niña y en todos los que aún quedan por celebrar.',
+        'Desde aquellos primeros años llenos de juegos y sueños hasta este nuevo cumpleaños, mira todo lo que has crecido y no fue en tamaño fue como persona, la mejor persona.',
+        'Hay recuerdos de la infancia que el tiempo nunca logra apagar, y hoy es un buen día para volver a sonreír por ellos y hacer nuevos.',
+        'Cada cumpleaños es una pequeña prueba de todas las aventuras que has vivido y de todas las que todavía te esperan.',
+        'Que este nuevo año de vida conserve un poquito de la magia en todos los días.',
+        'Quizá aquella niña que soñaba con crecer estaría orgullosa de la persona en la que te has convertido, por que yo estoy orgulloso de la persona que te convertiste.',
+        'Hay cumpleaños que solo suman un número y otros que nos recuerdan cuánto hemos vivido, aprendido y crecido',
+        'El universo no parece tener prisa y, aun así, todo sigue avanzando. Que nunca confundas ir despacio con estar detenida.',
+        'Avatar nos recuerda que la naturaleza no es solamente algo que contemplamos, sino algo de lo que formamos parte. Que nunca pierdas esa curiosidad por descubrir, cuidar y comprender el mundo.',
+        'Algún día quisiste estudiar el mar; quizá porque siempre hubo en ti algo que quería conocer lo que existe más allá de la superficie. Que nunca pierdas esa necesidad de explorar el universo.',
+        'Los antiguos chinos hablaban de la armonía entre fuerzas aparentemente opuestas. Que este nuevo año encuentres equilibrio entre quien fuiste, quien eres y quien estás comenzando a ser.',
+        'Hay historias que sobreviven siglos porque hablan de algo que todos conocemos: perderse, amar, luchar, cambiar y volver a empezar. Que tu propia historia tenga muchos capítulos que valga la pena recordar.',
+        'Las constelaciones no son más que estrellas separadas que alguien decidió conectar. Quizá nuestros recuerdos sean algo parecido: pequeños momentos que, juntos, terminan formando una vida.',
+        'El tiempo puede medirse en segundos, años o vueltas alrededor del sol; pero una vida se mide de otra manera: en momentos que todavía somos capaces de recordar con una sonrisa.',
+        'Como en toda gran historia, no puedes conocer el final desde el principio. Y quizá esa sea precisamente la parte más bonita'
+    ],
+
+    corazon: {
+        titulo: 'Feliz cumpleaños',
+        texto: 'Esta galaxia entera es un pequeño intento\nde celebrar lo especial que es este día.\n\nPero ningún universo alcanza\npara guardar todos los momentos,\nlas sonrisas y las aventuras que aún te esperan.\n'
+    },
+    infinito: { titulo: 'Tu mañana y tu presente', 
+    texto: 'El presente es apenas un punto en el tiempo,\ny el futuro, todas las posibilidades que todavía te esperan.\nQue nunca dejes de caminar hacia ellas.' }
+};
+
+const $ = s => document.querySelector(s);
+const cv = $('#bg-canvas'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = x => 1 - Math.pow(1 - x, 3);
+const easeIO = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const TAU = Math.PI * 2;
+
+$('#start-title').textContent = CONFIG.titulo;
+$('#start-sub').textContent = CONFIG.subtitulo;
+(function setupStartMedia() {
+    const box = $('#start-media');
+    if (CONFIG.gifInicio) {
+        const img = document.createElement('img');
+        img.id = 'start-gif'; img.alt = '';
+        img.src = CONFIG.gifInicio;
+        img.onerror = () => { box.innerHTML = '<div class="start-emoji">🧸💗</div>'; };
+        box.appendChild(img);
+    } else {
+        box.innerHTML = '<div class="start-emoji">🧸💗</div>';
+    }
+})();
+
+let yaw = 0.4, pitch = 0.42, zoom = 1, zoomEff = 1, foc = 450, ox = 0, oy = 0;
+let yawE = 0.4, camD = 1500;
+let cYaw = 1, sYaw = 0, cPit = 1, sPit = 0;
+let PX = 0, PY = 0, PS = 0, PZ = 0;
+const cam = { x: 0, y: 0, z: 0, d: 1500 };
+
+function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+function setCam(yw) { cYaw = Math.cos(yw); sYaw = Math.sin(yw); }
+function project(x, y, z) {
+    x -= cam.x; y -= cam.y; z -= cam.z;
+    const x1 = x * cYaw - z * sYaw, z1 = x * sYaw + z * cYaw;
+    const y1 = y * cPit + z1 * sPit, z2 = z1 * cPit - y * sPit;
+    const zc = z2 + camD;
+    if (zc < 60) return false;
+    const s = foc / zc;
+    PX = ox + x1 * s; PY = oy - y1 * s; PS = s; PZ = zc;
+    return true;
+}
+
+function makeGalaxy(o) {
+    const parts = [], R = o.R;
+    for (let i = 0; i < o.N; i++) {                          // brazos espirales
+        const arm = i % o.arms;
+        const u = Math.pow(Math.random(), 0.72), r = 40 + u * R, rn = r / R;
+        const ang = arm * (TAU / o.arms) + r * o.twist + (0.5 * (1 - rn) + 0.1) * gauss() * 1.25;
+        const jr = gauss() * (8 + rn * 26);
+        parts.push({ x: Math.cos(ang) * (r + jr), z: Math.sin(ang) * (r + jr),
+            y: gauss() * (14 * (1 - rn) + 3),
+            c: clamp(Math.floor(rn * 7 + Math.random() * 2.2 - 0.6), 0, 7), s: rnd(2.2, 5.4) });
+    }
+    for (let i = 0; i < o.core; i++) {                        // núcleo
+        const a = Math.random() * TAU, r = Math.abs(gauss()) * 110;
+        parts.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, y: gauss() * 14,
+            c: Math.floor(Math.random() * 3), s: rnd(2.4, 5) });
+    }
+    for (let i = 0; i < o.dust; i++) {                        // polvo
+        const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * R * 1.18;
+        parts.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, y: gauss() * 22,
+            c: 3 + Math.floor(Math.random() * 5), s: rnd(1.6, 3.2) });
+    }
+    parts.sort((a, b) => a.c - b.c);
+    const N = parts.length;
+    const g = { x: o.x, y: o.y, z: o.z, R, N, spin: o.spin, name: o.name,
+        gx: new Float32Array(N), gy: new Float32Array(N), gz: new Float32Array(N),
+        gs: new Float32Array(N), gc: new Uint8Array(N),
+        pal: o.pal.map(c => `rgba(${c},0.85)`) };
+    parts.forEach((p, i) => { g.gx[i] = p.x; g.gy[i] = p.y; g.gz[i] = p.z; g.gs[i] = p.s; g.gc[i] = p.c; });
+    return g;
+}
+
+const G = [
+    makeGalaxy({ name: CONFIG.galaxias[0], x: 0, y: 0, z: 0, R: 640, arms: 2, twist: 0.0105, spin: 0.035,
+        N: 6200, core: 1300, dust: 1700,
+        pal: ['255,236,190','255,205,140','255,160,130','255,120,170','240,100,200','200,110,255','150,130,255','120,170,255'] }),
+    makeGalaxy({ name: CONFIG.galaxias[1], x: 2400, y: 100, z: -1100, R: 600, arms: 3, twist: 0.0085, spin: -0.03,
+        N: 4300, core: 900, dust: 1400,
+        pal: ['255,250,220','255,236,170','190,255,245','120,235,255','110,190,255','140,150,255','190,130,255','240,130,230'] })
+];
+let cur = 0;                                                  // galaxia actual
+
+// Agujero negro (galaxia rosa)
+const disk = [];
+for (let i = 0; i < 700; i++) {
+    const a = Math.random() * TAU, r = rnd(17, 50);
+    disk.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, y: gauss() * 1.6, s: rnd(2, 4.4), b: i % 2 });
+}
+
+// Estrellas de fondo (cielo que sigue a la cámara)
+const bgStars = [];
+for (let i = 0; i < 2400; i++) {
+    const th = Math.random() * TAU, ph = Math.acos(rnd(-1, 1)), R = 4200;
+    bgStars.push({ x: R * Math.sin(ph) * Math.cos(th), y: R * Math.cos(ph), z: R * Math.sin(ph) * Math.sin(th),
+        s: rnd(1, 2.6), p: Math.random() * TAU });
+}
+
+// Emblemas de partículas: corazón (rosa) e infinito (azul)
+function buildEmblem(kind) {
+    const pts = [];
+    if (kind === 0) {
+        const HS = 12;
+        const hp = t => [16 * Math.pow(Math.sin(t), 3),
+            13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)];
+        for (let i = 0; i < 1500; i++) {
+            const t = Math.random() * TAU, [x, y] = hp(t), edge = i < 900;
+            const k = edge ? 1 + gauss() * 0.045 : Math.sqrt(Math.random()) * 0.94;
+            pts.push({ x: x * k * HS + gauss() * (edge ? 5 : 9), y: y * k * HS + gauss() * (edge ? 5 : 9),
+                z: gauss() * (edge ? 16 : 28), p: Math.random() * TAU, s: rnd(2.4, edge ? 5.4 : 4.2), c: i % 3 });
+        }
+        return { pts: pts.sort((a, b) => a.c - b.c), y: 400, hr: 190,
+            cols: ['rgba(255,70,225,0.9)', 'rgba(255,130,235,0.85)', 'rgba(210,90,255,0.85)'] };
+    }
+    const A = 230;
+    for (let i = 0; i < 1600; i++) {
+        const t = Math.random() * TAU, d = 1 + Math.sin(t) * Math.sin(t), edge = i < 1100;
+        pts.push({ x: A * Math.cos(t) / d + gauss() * (edge ? 4 : 14),
+            y: A * Math.sin(t) * Math.cos(t) / d * 1.3 + gauss() * (edge ? 4 : 14),
+            z: gauss() * (edge ? 14 : 26), p: Math.random() * TAU, s: rnd(2.4, edge ? 5.2 : 4), c: i % 3 });
+    }
+    return { pts: pts.sort((a, b) => a.c - b.c), y: 390, hr: 230,
+        cols: ['rgba(110,235,255,0.9)', 'rgba(255,235,170,0.9)', 'rgba(150,175,255,0.88)'] };
+}
+G[0].em = buildEmblem(0);
+G[1].em = buildEmblem(1);
+
+const THEMES = [
+    { glow: 'rgba(255,80,170,0.95)', fill: '#ffc9ea', core: '#fff0fa' },
+    { glow: 'rgba(60,200,255,0.95)', fill: '#c4f3ff', core: '#f0fcff' }
+];
+function makeWordSprite(text, theme, size) {
+    size = size || 18;
+    const th = THEMES[theme || 0], font = `700 ${size}px 'JetBrains Mono', ui-monospace, monospace`;
+    const c = document.createElement('canvas'), g = c.getContext('2d');
+    g.font = font;
+    const w = Math.ceil(g.measureText(text).width) + 70, h = size + 60;
+    c.width = w; c.height = h;
+    g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.shadowColor = th.glow; g.shadowBlur = 22; g.fillStyle = th.fill;
+    g.fillText(text, w / 2, h / 2 + 2);
+    g.shadowBlur = 7; g.fillStyle = th.core;
+    g.fillText(text, w / 2, h / 2 + 2);
+    return c;
+}
+
+function makeStarSprite(col) {
+    const S = 64, c = document.createElement('canvas'), g = c.getContext('2d');
+    c.width = c.height = S;
+    const gr = g.createRadialGradient(S/2, S/2, 0, S/2, S/2, S/2);
+    gr.addColorStop(0, `rgba(${col},0.95)`); gr.addColorStop(0.25, `rgba(${col},0.35)`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gr; g.fillRect(0, 0, S, S);
+    g.fillStyle = '#fff'; g.shadowColor = `rgb(${col})`; g.shadowBlur = 8;
+    g.beginPath();
+    g.moveTo(S/2, 4); g.quadraticCurveTo(S/2, S/2, S-4, S/2);
+    g.quadraticCurveTo(S/2, S/2, S/2, S-4); g.quadraticCurveTo(S/2, S/2, 4, S/2);
+    g.quadraticCurveTo(S/2, S/2, S/2, 4); g.fill();
+    return c;
+}
+
+// planeta-foto: tu imagen dentro de una esfera con brillo atmosférico
+function makePhotoItem(src) {
+    const S = 288, c = document.createElement('canvas'), g = c.getContext('2d');
+    c.width = c.height = S;
+    const cx = S / 2, R = S / 2 - 26;
+    const paint = im => {
+        g.clearRect(0, 0, S, S);
+        let gl = g.createRadialGradient(cx, cx, R * 0.9, cx, cx, R * 1.28);
+        gl.addColorStop(0, 'rgba(255,130,200,0.55)'); gl.addColorStop(1, 'rgba(255,130,200,0)');
+        g.fillStyle = gl; g.fillRect(0, 0, S, S);
+        g.save(); g.beginPath(); g.arc(cx, cx, R, 0, TAU); g.clip();
+        g.fillStyle = '#fff'; g.fillRect(0, 0, S, S);
+        if (im) {
+            const sc = Math.max(2 * R / im.width, 2 * R / im.height);
+            g.drawImage(im, cx - im.width * sc / 2, cx - im.height * sc / 2, im.width * sc, im.height * sc);
+        } else {
+            g.fillStyle = '#222'; g.font = "700 44px 'JetBrains Mono', monospace"; g.textAlign = 'center'; g.textBaseline = 'middle';
+            g.fillText('te amo', cx, cx - 8);
+            g.font = '56px sans-serif'; g.fillText('❤️', cx, cx + 52);
+        }
+        const sh = g.createRadialGradient(cx - R * 0.38, cx - R * 0.38, R * 0.15, cx, cx, R * 1.04);
+        sh.addColorStop(0, 'rgba(255,255,255,0.18)'); sh.addColorStop(0.55, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(12,0,30,0.55)');
+        g.fillStyle = sh; g.fillRect(0, 0, S, S);
+        g.restore();
+        g.beginPath(); g.arc(cx, cx, R, 0, TAU); g.lineWidth = 5; g.strokeStyle = 'rgba(255,170,220,0.95)'; g.stroke();
+    };
+    paint(null);
+    let fallback = '';
+    try { fallback = c.toDataURL(); } catch (e) {}
+    if (src) {
+        const im = new Image();
+        im.onload = () => paint(im);
+        im.src = src;
+    }
+    return { spr: c, fallback };
+}
+
+// planetas procedurales
+const PKINDS = [
+    { a: '#ffb8dd', b: '#e0559f', glow: '255,120,190', bands: 1, ring: '255,225,240', tint: '255,110,185' },
+    { a: '#8fdcff', b: '#1f5fc4', glow: '110,200,255', clouds: 1, tint: '90,170,255' },
+    { a: '#d5beff', b: '#6a3fc9', glow: '180,140,255', bands: 1, tint: '150,110,255' },
+    { a: '#ffc08a', b: '#c2452a', glow: '255,150,90', craters: 1, tint: '255,130,80' },
+    { a: '#c9fff6', b: '#25b0a3', glow: '130,255,235', clouds: 1, ring: '200,255,250', tint: '80,230,215' },
+    { a: '#ffeaa8', b: '#d6921f', glow: '255,215,120', bands: 1, ring: '255,235,170', tint: '255,205,100' }
+];
+function makePlanetSprite(kd) {
+    const S = 320, c = document.createElement('canvas'), g = c.getContext('2d');
+    c.width = c.height = S;
+    const cx = S / 2, cy = S / 2, R = kd.ring ? 74 : 96;
+    let gr = g.createRadialGradient(cx, cy, R * 0.8, cx, cy, R * 1.5);
+    gr.addColorStop(0, `rgba(${kd.glow},0.45)`); gr.addColorStop(1, `rgba(${kd.glow},0)`);
+    g.fillStyle = gr; g.fillRect(0, 0, S, S);
+    const ring = front => {
+        g.save(); g.translate(cx, cy); g.rotate(-0.32);
+        if (front) { g.beginPath(); g.rect(-S, 0, S * 2, S); g.clip(); }
+        [[R * 1.55, 8, 0.85], [R * 1.78, 12, 0.5], [R * 2.0, 6, 0.7]].forEach(([rx, w, al]) => {
+            g.beginPath(); g.ellipse(0, 0, rx, rx * 0.28, 0, 0, TAU);
+            g.lineWidth = w; g.strokeStyle = `rgba(${kd.ring},${al})`; g.stroke();
+        });
+        g.restore();
+    };
+    if (kd.ring) ring(false);
+    g.save(); g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.clip();
+    const bg = g.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    bg.addColorStop(0, kd.a); bg.addColorStop(1, kd.b);
+    g.fillStyle = bg; g.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    if (kd.bands) for (let i = 0; i < 14; i++) {
+        g.fillStyle = `rgba(${i % 2 ? '255,255,255' : '60,20,90'},${rnd(0.08, 0.22)})`;
+        g.fillRect(cx - R, cy - R + i * (2 * R / 14) + rnd(-4, 4), 2 * R, rnd(5, 14));
+    }
+    if (kd.clouds) for (let i = 0; i < 26; i++) {
+        g.fillStyle = `rgba(255,255,255,${rnd(0.12, 0.3)})`; g.beginPath();
+        g.ellipse(cx + rnd(-R, R), cy + rnd(-R, R), rnd(12, 34), rnd(4, 10), rnd(-0.4, 0.4), 0, TAU); g.fill();
+    }
+    if (kd.craters) for (let i = 0; i < 12; i++) {
+        const x = cx + rnd(-R * 0.8, R * 0.8), y = cy + rnd(-R * 0.8, R * 0.8), r = rnd(5, 16);
+        g.fillStyle = 'rgba(80,20,10,0.35)'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+        g.strokeStyle = 'rgba(255,220,190,0.35)'; g.lineWidth = 2; g.stroke();
+    }
+    const sh = g.createRadialGradient(cx - R * 0.4, cy - R * 0.4, R * 0.1, cx, cy, R * 1.05);
+    sh.addColorStop(0, 'rgba(255,255,255,0.28)'); sh.addColorStop(0.45, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(8,0,24,0.78)');
+    g.fillStyle = sh; g.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    g.restore();
+    g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.lineWidth = 2; g.strokeStyle = `rgba(${kd.glow},0.55)`; g.stroke();
+    if (kd.ring) ring(true);
+    return c;
+}
+
+// portal (remolino que lleva a la otra galaxia)
+function makePortalSprite(theme) {
+    const S = 256, c = document.createElement('canvas'), g = c.getContext('2d');
+    c.width = c.height = S;
+    const col = theme ? '120,235,255' : '255,150,220', col2 = theme ? '255,150,220' : '120,200,255';
+    const gl = g.createRadialGradient(S/2, S/2, 10, S/2, S/2, S/2);
+    gl.addColorStop(0, 'rgba(10,0,30,0.95)'); gl.addColorStop(0.35, `rgba(${col},0.35)`); gl.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gl; g.fillRect(0, 0, S, S);
+    for (let arm = 0; arm < 4; arm++) {
+        g.beginPath();
+        for (let a = 0; a < 4.4; a += 0.08) {
+            const r = 12 + a * 26, ang = a + arm * Math.PI / 2;
+            const x = S / 2 + Math.cos(ang) * r, y = S / 2 + Math.sin(ang) * r;
+            if (a === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        g.lineWidth = 6; g.lineCap = 'round';
+        g.strokeStyle = `rgba(${arm % 2 ? col : col2},0.8)`; g.stroke();
+    }
+    g.fillStyle = '#000'; g.beginPath(); g.arc(S/2, S/2, 16, 0, TAU); g.fill();
+    return c;
+}
+
+const items = [];
+const emblemItems = [
+    { type: 'heart', g: 0, titulo: CONFIG.corazon.titulo, texto: CONFIG.corazon.texto },
+    { type: 'heart', g: 1, titulo: CONFIG.infinito.titulo, texto: CONFIG.infinito.texto }
+];
+
+function buildItems() {
+    const starCols = ['255,255,255', '255,170,225', '150,220,255', '255,230,160'];
+    const starSprites = starCols.map(makeStarSprite);
+    const planetSprites = PKINDS.map(makePlanetSprite);
+
+    G.forEach((g, gi) => {
+        const words = gi === 0 ? CONFIG.palabras : CONFIG.palabras2;
+        const nW = gi === 0 ? 14 : 12;
+        for (let k = 0; k < nW; k++) {
+            const w = words[k % words.length];
+            items.push({ type: 'word', g: gi, spr: makeWordSprite(w.t, gi), k: 1.0,
+                r: g.R * 0.36 + ((k * 67) % (g.R * 0.56)), a: k * 2.399 + gi, w: g.spin + rnd(-0.008, 0.012),
+                y: ((k % 3) - 1) * 20, ph: Math.random() * TAU, titulo: w.titulo, texto: w.texto });
+        }
+        // planetas-foto
+        let pc = 0;
+        CONFIG.fotos.forEach((f, i) => {
+            const fg = (f.galaxia || (i < 3 ? 1 : 2)) - 1;
+            if (fg !== gi) return;
+            const p = makePhotoItem(f.src);
+            items.push({ type: 'photo', g: gi, spr: p.spr, k: 0.58, src: f.src, fondo: f.fondo || '', fallback: p.fallback, tint: '255,130,200',
+                r: g.R * (0.5 + (pc * 0.17) % 0.42), a: pc * 2.1 + 0.6 + gi * 1.3, w: g.spin + rnd(-0.004, 0.006),
+                y: 20 + (pc % 2) * 24, ph: Math.random() * TAU, titulo: f.titulo, texto: f.texto });
+            pc++;
+        });
+        // planetas procedurales
+        let qc = 0;
+        CONFIG.planetas.forEach(pl => {
+            if (pl.galaxia - 1 !== gi) return;
+            const kd = PKINDS[pl.kind % PKINDS.length], D = rnd(105, 150);
+            items.push({ type: 'planet', g: gi, spr: planetSprites[pl.kind % PKINDS.length], k: D / (kd.ring ? 148 : 192),
+                tint: kd.tint, fondo: pl.fondo || '', r: g.R * (0.3 + (qc * 0.21) % 0.6), a: qc * 1.9 + 2.2 + gi, w: g.spin * 0.8 + rnd(-0.004, 0.006),
+                y: ((qc % 3) - 1) * 28, ph: Math.random() * TAU, titulo: pl.titulo, texto: pl.texto });
+            qc++;
+        });
+        // estrellas
+        for (let i = 0; i < (gi === 0 ? 26 : 22); i++) {
+            items.push({ type: 'star', g: gi, spr: starSprites[i % 4], k: rnd(1.0, 1.5),
+                r: rnd(90, g.R), a: Math.random() * TAU, w: g.spin + rnd(-0.008, 0.012),
+                y: rnd(-20, 240), ph: Math.random() * TAU,
+                titulo: '✦', texto: CONFIG.estrellas[(i + gi * 3) % CONFIG.estrellas.length] });
+        }
+        // portal hacia la otra galaxia
+        const o = G[1 - gi];
+        items.push({ type: 'portal', g: gi, spr: makePortalSprite(1 - gi), k: 0.85,
+            lbl: makeWordSprite('→ ' + o.name.toUpperCase(), 1 - gi, 40),
+            r: g.R * 0.9, a: Math.atan2(o.z - g.z, o.x - g.x), w: 0, y: 70, ph: 0 });
+    });
+}
+let hitList = [], hovered = null;
+
+const warp = [];
+const WCOL = ['#ff2bd6', '#ffee00', '#22e6ff'];
+for (let i = 0; i < 360; i++) warp.push({ a: Math.random() * TAU, z: Math.random(), v: rnd(0.22, 0.5), k: rnd(0.5, 1.2), c: WCOL[i % 3] });
+function drawWarp(dt, alpha) {
+    if (alpha <= 0) return;
+    ctx.globalAlpha = alpha; ctx.globalCompositeOperation = 'lighter';
+    const cx = W / 2, cy = H * 0.5, maxR = Math.hypot(W, H) * 0.56;
+    for (const p of warp) {
+        p.z += p.v * dt; if (p.z > 1) { p.z = 0; p.a = Math.random() * TAU; }
+        const ang = p.a + p.z * 1.1, rr = p.z * p.z * maxR;
+        ctx.fillStyle = p.c; ctx.beginPath();
+        ctx.arc(cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 0.8 + p.z * p.z * 9 * p.k, 0, TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    const hg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 70);
+    hg.addColorStop(0, 'rgba(0,0,0,1)'); hg.addColorStop(0.7, 'rgba(0,0,0,.9)'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg; ctx.fillRect(cx - 80, cy - 80, 160, 160);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(cx, cy, 15, 6, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(cx, cy - 1, 3.6, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+}
+
+const streaks = [];
+for (let i = 0; i < 170; i++) streaks.push({ a: Math.random() * TAU, z: Math.random(), v: rnd(0.5, 1.5), c: i % 3 });
+const STREAK_COL = ['255,255,255', '255,160,225', '140,230,255'];
+function drawStreaks(dt, k) {
+    if (k <= 0.02) return;
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+    const cx = W / 2, cy = H * 0.5, maxR = Math.hypot(W, H) * 0.6;
+    for (const s of streaks) {
+        s.z += s.v * dt * (0.35 + k * 1.7);
+        if (s.z > 1) { s.z = 0.02; s.a = Math.random() * TAU; }
+        const r1 = s.z * s.z * maxR, r0 = Math.max(0, r1 - k * (0.03 + s.z) * maxR * 0.4);
+        const ca = Math.cos(s.a), sa = Math.sin(s.a);
+        ctx.strokeStyle = `rgba(${STREAK_COL[s.c]},${k * (0.2 + s.z * 0.6)})`;
+        ctx.lineWidth = 0.6 + s.z * 2.2;
+        ctx.beginPath(); ctx.moveTo(cx + ca * r0, cy + sa * r0); ctx.lineTo(cx + ca * r1, cy + sa * r1); ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+const sparks = [];
+function drawShip(t, dt, alpha, thrust) {
+    const u = Math.min(W, H) * 0.085;
+    const bx = W / 2 + Math.sin(t * 1.3) * W * 0.022 + (Math.random() - 0.5) * thrust * 3;
+    const by = H * 0.76 + Math.sin(t * 2.1) * 5 - thrust * H * 0.04 + (1 - alpha) * H * 0.14;
+    const roll = Math.sin(t * 1.1) * 0.07 + Math.sin(t * 0.5) * 0.05 + Math.sin(t * 0.8) * thrust * 0.05;
+
+    // chispas del motor
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 2; i++) sparks.push({ x: bx + rnd(-0.25, 0.25) * u, y: by + u * 1.05, vx: rnd(-25, 25),
+        vy: rnd(90, 220) * (1 + thrust), life: 1, c: Math.random() < 0.5 ? '255,205,150' : '255,140,200' });
+    for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i]; s.life -= dt * 1.6;
+        if (s.life <= 0) { sparks.splice(i, 1); continue; }
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        ctx.fillStyle = `rgba(${s.c},${s.life * alpha * 0.8})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 1 + s.life * 2.2, 0, TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.save(); ctx.globalAlpha = alpha; ctx.translate(bx, by); ctx.rotate(roll); ctx.scale(u, u);
+    let g = ctx.createRadialGradient(0, 0.4, 0, 0, 0.4, 2.3);
+    g.addColorStop(0, 'rgba(255,140,210,0.32)'); g.addColorStop(1, 'rgba(255,140,210,0)');
+    ctx.fillStyle = g; ctx.fillRect(-2.6, -2, 5.2, 5.2);
+
+    // llamas
+    ctx.globalCompositeOperation = 'lighter';
+    const fl = 0.9 + 0.3 * Math.sin(t * 38) + 0.2 * Math.random(), len = (1.1 + thrust * 1.7) * fl;
+    for (const sx of [-0.2, 0.2]) {
+        g = ctx.createLinearGradient(0, 0.95, 0, 0.95 + len);
+        g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.35, 'rgba(255,170,90,0.8)'); g.addColorStop(1, 'rgba(255,60,140,0)');
+        ctx.fillStyle = g; ctx.beginPath();
+        ctx.moveTo(sx - 0.1, 0.95); ctx.quadraticCurveTo(sx, 0.95 + len * 1.15, sx + 0.1, 0.95); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    // alas
+    for (const side of [1, -1]) {
+        ctx.save(); ctx.scale(side, 1);
+        g = ctx.createLinearGradient(-0.3, 0.1, -1.2, 0.9);
+        g.addColorStop(0, '#a77be8'); g.addColorStop(1, '#ff8fd0');
+        ctx.fillStyle = g; ctx.beginPath();
+        ctx.moveTo(-0.3, 0.02); ctx.lineTo(-1.25, 0.82); ctx.lineTo(-1.08, 1.02); ctx.lineTo(-0.28, 0.64); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath();
+        ctx.moveTo(-0.34, 0.12); ctx.lineTo(-1.0, 0.72); ctx.lineTo(-0.34, 0.34); ctx.closePath(); ctx.fill();
+        ctx.restore();
+    }
+    // cuerpo
+    g = ctx.createLinearGradient(-0.4, 0, 0.4, 0);
+    g.addColorStop(0, '#d9ceff'); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, '#b9a4ff');
+    ctx.fillStyle = g; ctx.beginPath();
+    ctx.moveTo(0, -1.28); ctx.bezierCurveTo(0.52, -0.7, 0.5, 0.5, 0.32, 0.92);
+    ctx.lineTo(-0.32, 0.92); ctx.bezierCurveTo(-0.5, 0.5, -0.52, -0.7, 0, -1.28); ctx.closePath(); ctx.fill();
+    ctx.lineWidth = 0.035; ctx.strokeStyle = 'rgba(120,80,200,0.55)'; ctx.stroke();
+    ctx.fillStyle = '#4b3a7a'; ctx.fillRect(-0.3, 0.9, 0.2, 0.14); ctx.fillRect(0.1, 0.9, 0.2, 0.14);
+    // cabina
+    g = ctx.createRadialGradient(-0.04, -0.45, 0.02, 0, -0.35, 0.3);
+    g.addColorStop(0, '#e8fdff'); g.addColorStop(0.5, '#6fd8ff'); g.addColorStop(1, '#2a5fc4');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -0.35, 0.17, 0.28, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(-0.06, -0.46, 0.04, 0.09, -0.3, 0, TAU); ctx.fill();
+    // corazoncito en el casco
+    ctx.fillStyle = '#ff5fa8'; ctx.beginPath();
+    ctx.moveTo(0, 0.56); ctx.bezierCurveTo(-0.24, 0.34, -0.12, 0.14, 0, 0.3); ctx.bezierCurveTo(0.12, 0.14, 0.24, 0.34, 0, 0.56); ctx.fill();
+    ctx.restore();
+}
+
+let mode = 'idle';            // idle | travel | fly | landed | return
+let flight = null, retT0 = 0, yawFx = 0, pitchFx = 0, fxWarp = 0, shipA = 0;
+let started = false, tStart = 0, interactive = false, lastTs = 0;
+const t0 = performance.now();
+const nowT = () => (performance.now() - t0) / 1000;
+const warpBtn = $('#warp-btn'), labelEl = $('#flight-label');
+let labelTimer = null;
+
+function showLabel(text, ms) {
+    labelEl.textContent = text; labelEl.classList.add('show');
+    clearTimeout(labelTimer); labelTimer = setTimeout(() => labelEl.classList.remove('show'), ms);
+}
+function syncUI() {
+    document.body.classList.toggle('busy', mode !== 'idle' || modalOpen);
+    warpBtn.textContent = '🚀 Ir a la ' + G[1 - cur].name;
+}
+
+function itemWorld(it, t) {
+    const g = G[it.g], a = it.a + t * it.w, y = it.y + Math.sin(t * 0.8 + it.ph) * 10;
+    return [g.x + Math.cos(a) * it.r, g.y + y, g.z + Math.sin(a) * it.r];
+}
+
+function startTravel(to) {
+    if (mode !== 'idle' || modalOpen || !interactive) return;
+    mode = 'travel';
+    flight = { t0: nowT(), dur: 5.6, to, sx: cam.x, sy: cam.y, sz: cam.z, sd: cam.d };
+    showLabel('Rumbo a la ' + G[to].name + ' ✦', 4600);
+    syncUI();
+}
+function startFly(it) {
+    if (mode !== 'idle' || modalOpen) return;
+    mode = 'fly';
+    const wpx = it.spr.width * it.k, want = Math.min(W, H) * 0.62;
+    const td = clamp(foc / (want / wpx), 120, 900);
+    flight = { t0: nowT(), dur: 3.4, it, td, sx: cam.x, sy: cam.y, sz: cam.z, sd: cam.d };
+    showLabel('Rumbo a «' + it.titulo + '»', 3000);
+    syncUI();
+}
+function arrive(it) {
+    mode = 'landed';
+    openModal(it, { x: it.px, y: it.py });
+}
+function endLanding() {
+    mode = 'return'; retT0 = nowT();
+    showLabel('Volviendo a la ' + G[cur].name, 1900);
+    syncUI();
+}
+
+function updateCamera(t, dt, introD) {
+    fxWarp = 0; let yf = 0, pf = 0;
+    if (mode === 'travel') {
+        const f = flight, p = clamp((t - f.t0) / f.dur, 0, 1), e = easeIO(p), T = G[f.to];
+        cam.x = lerp(f.sx, T.x, e); cam.y = lerp(f.sy, T.y, e); cam.z = lerp(f.sz, T.z, e);
+        cam.d = lerp(f.sd, 1500, e) + 2300 * Math.sin(Math.PI * e);
+        const bell = Math.sin(Math.PI * p);
+        fxWarp = Math.pow(bell, 1.2); yf = 0.9 * bell; pf = -0.18 * bell;
+        if (p >= 1) {
+            cur = f.to; mode = 'idle'; flight = null;
+            showLabel(G[cur].name + ' ✦', 2800); syncUI();
+        }
+    } else if (mode === 'fly') {
+        const f = flight, p = clamp((t - f.t0) / f.dur, 0, 1), e = easeIO(p), w = itemWorld(f.it, t);
+        cam.x = lerp(f.sx, w[0], e); cam.y = lerp(f.sy, w[1], e); cam.z = lerp(f.sz, w[2], e);
+        cam.d = lerp(f.sd, f.td, e);
+        const bell = Math.sin(Math.PI * p);
+        fxWarp = 0.25 + 0.7 * Math.pow(bell, 0.8); yf = 0.5 * bell; pf = -0.1 * bell;
+        if (p >= 1) arrive(f.it);
+    } else if (mode === 'landed') {
+        const f = flight, w = itemWorld(f.it, t);
+        cam.x = w[0]; cam.y = w[1]; cam.z = w[2]; cam.d = f.td;
+    } else {
+        const k = Math.min(1, dt * (mode === 'return' ? 2.6 : 3.5)), g = G[cur];
+        if (introD !== null) { cam.x = g.x; cam.y = g.y; cam.z = g.z; cam.d = introD; }
+        else {
+            cam.x += (g.x - cam.x) * k; cam.y += (g.y - cam.y) * k; cam.z += (g.z - cam.z) * k;
+            cam.d += (1500 - cam.d) * k;
+        }
+        if (mode === 'return') {
+            const p = (t - retT0) / 1.9;
+            fxWarp = 0.55 * Math.max(0, 1 - p);
+            if (p >= 1) { mode = 'idle'; flight = null; syncUI(); }
+        }
+    }
+    yawFx = yf; pitchFx = pf;
+    zoomEff += ((mode === 'idle' ? zoom : 1) - zoomEff) * Math.min(1, dt * 4);
+}
+
+function drawGalaxy(g, t) {
+    if (project(g.x, g.y, g.z)) {
+        const rr = g.R * 1.7 * PS;
+        if (PX + rr < 0 || PX - rr > W || PY + rr < 0 || PY - rr > H) return false;
+    }
+    const ang = t * g.spin, cg = Math.cos(ang), sg = Math.sin(ang);
+    let lastC = -1;
+    for (let i = 0; i < g.N; i++) {
+        const lx = g.gx[i] * cg - g.gz[i] * sg, lz = g.gx[i] * sg + g.gz[i] * cg;
+        if (!project(g.x + lx, g.y + g.gy[i], g.z + lz)) continue;
+        if (PX < -6 || PX > W + 6 || PY < -6 || PY > H + 6) continue;
+        if (g.gc[i] !== lastC) { ctx.fillStyle = g.pal[g.gc[i]]; lastC = g.gc[i]; }
+        const sz = Math.max(0.9, PS * g.gs[i]);
+        ctx.fillRect(PX, PY, sz, sz);
+    }
+    return true;
+}
+
+function drawBlackHole(g, t) {
+    if (project(g.x, g.y, g.z)) {
+        const cx = PX, cy = PY, s = PS;
+        const gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, 110 * s);
+        gl.addColorStop(0, 'rgba(255,200,120,.55)'); gl.addColorStop(0.4, 'rgba(255,120,170,.18)'); gl.addColorStop(1, 'rgba(255,120,170,0)');
+        ctx.fillStyle = gl; ctx.fillRect(cx - 120 * s, cy - 120 * s, 240 * s, 240 * s);
+    }
+    const ang = t * g.spin * 4, ca = Math.cos(ang), sa = Math.sin(ang);
+    for (const d of disk) {
+        if (!project(g.x + d.x * ca - d.z * sa, g.y + d.y, g.z + d.x * sa + d.z * ca)) continue;
+        ctx.fillStyle = d.b ? 'rgba(255,240,150,.95)' : 'rgba(255,205,90,.9)';
+        const sz = Math.max(1, PS * d.s); ctx.fillRect(PX, PY, sz, sz);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    if (project(g.x, g.y + 6, g.z)) {
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(PX, PY - 2 * PS, 15 * PS, 0, TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'lighter';
+}
+
+function drawSun(g, t) {
+    if (!project(g.x, g.y, g.z)) return;
+    const cx = PX, cy = PY, s = PS;
+    const gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, 130 * s);
+    gl.addColorStop(0, 'rgba(255,255,240,.95)'); gl.addColorStop(0.12, 'rgba(255,240,180,.8)');
+    gl.addColorStop(0.35, 'rgba(130,230,255,.28)'); gl.addColorStop(1, 'rgba(130,230,255,0)');
+    ctx.fillStyle = gl; ctx.fillRect(cx - 135 * s, cy - 135 * s, 270 * s, 270 * s);
+    ctx.lineWidth = Math.max(1, 2 * s); ctx.lineCap = 'round';
+    for (let k = 0; k < 6; k++) {
+        const a = t * 0.15 + k * Math.PI / 3, L = (k % 2 ? 130 : 190) * s;
+        const lg = ctx.createLinearGradient(cx, cy, cx + Math.cos(a) * L, cy + Math.sin(a) * L);
+        lg.addColorStop(0, 'rgba(255,255,230,.55)'); lg.addColorStop(1, 'rgba(255,255,230,0)');
+        ctx.strokeStyle = lg; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * L, cy + Math.sin(a) * L); ctx.stroke();
+    }
+}
+
+function drawEmblem(g, gi, t, canTap) {
+    const em = g.em;
+    const hyRel = yawE * 0.4 + Math.sin(t * 0.6) * 0.55, phi = hyRel - yawE;
+    const cf = Math.cos(phi), sf = Math.sin(phi);
+    const pulse = 1 + 0.045 * Math.sin(t * 3.2) + 0.02 * Math.sin(t * 6.4);
+    const bob = Math.sin(t * 1.1) * 10;
+    let lastC = -1;
+    for (const p of em.pts) {
+        const px = p.x * pulse;
+        if (!project(g.x + px * cf - p.z * sf, g.y + em.y + bob + p.y * pulse, g.z + px * sf + p.z * cf)) continue;
+        if (p.c !== lastC) { ctx.fillStyle = em.cols[p.c]; lastC = p.c; }
+        const sz = Math.max(1, PS * p.s * (0.75 + 0.35 * Math.sin(t * 2.2 + p.p)));
+        ctx.fillRect(PX, PY, sz, sz);
+    }
+    if (canTap && gi === cur && project(g.x, g.y + em.y + bob, g.z)) {
+        const it = emblemItems[gi], rr = Math.max(em.hr * PS, 40);
+        it.hx = PX; it.hy = PY; it.hw = rr; it.hh = rr; it.hz = PZ + 2000;
+        hitList.push(it);
+    }
+}
+
+const bursts = [];
+function spawnBurst(x, y) {
+    for (let i = 0; i < 22; i++) {
+        const a = Math.random() * TAU, v = rnd(40, 170);
+        bursts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1,
+            c: ['255,170,225', '255,255,255', '170,220,255', '255,230,160'][i % 4] });
+    }
+}
+
+function frame(ts) {
+    const t = (ts - t0) / 1000;
+    const dt = Math.min(0.05, (ts - lastTs) / 1000 || 0.016); lastTs = ts;
+
+    // Línea de tiempo de la intro
+    let gA = 1, wA = 0, introD = null;
+    if (started) {
+        const u = t - tStart;
+        wA = u < 3 ? 1 : Math.max(0, 1 - (u - 3) / 1.6);
+        gA = u < 3 ? 0 : Math.min(1, (u - 3) / 1.6);
+        if (u < 6.5) introD = u < 3 ? 3200 : lerp(3200, 1500, ease(Math.min(1, (u - 3) / 3.5)));
+        if (u > 4.6 && !interactive) {
+            interactive = true; document.body.classList.add('ready');
+            $('#hint').classList.add('show'); setTimeout(() => $('#hint').classList.remove('show'), 8000);
+        }
+    }
+
+    updateCamera(t, dt, introD);
+    camD = cam.d * zoomEff;
+    yawE = yaw + yawFx;
+    const sFit = Math.min(0.5 * H / 560, 0.48 * W / 640);
+    foc = sFit * 1500;
+    const pe = clamp(pitch + pitchFx, 0.05, 1.3);
+    cPit = Math.cos(pe); sPit = Math.sin(pe);
+    ox = W / 2 + (Math.random() - 0.5) * fxWarp * 4; oy = H * 0.6 + (Math.random() - 0.5) * fxWarp * 4;
+
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+
+    drawWarp(dt, wA);
+
+    hitList = [];
+    const canTap = interactive && mode === 'idle' && !modalOpen;
+
+    if (gA > 0) {
+        ctx.globalAlpha = gA;
+        setCam(yawE);
+
+        // cielo de estrellas
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,255,255,.75)';
+        for (const s of bgStars) {
+            if (!project(cam.x + s.x, cam.y + s.y, cam.z + s.z)) continue;
+            if (PX < 0 || PX > W || PY < 0 || PY > H) continue;
+            const sz = s.s * (0.7 + 0.3 * Math.sin(t * 2 + s.p));
+            ctx.fillRect(PX, PY, sz, sz);
+        }
+
+        // galaxias
+        for (let gi = 0; gi < 2; gi++) {
+            const g = G[gi];
+            ctx.globalCompositeOperation = 'lighter';
+            if (!drawGalaxy(g, t)) continue;
+            if (gi === 0) drawBlackHole(g, t); else drawSun(g, t);
+            drawEmblem(g, gi, t, canTap);
+        }
+
+        // palabras / fotos / planetas / estrellas / portales
+        ctx.globalCompositeOperation = 'source-over';
+        const vis = [];
+        for (const it of items) {
+            const w = itemWorld(it, t);
+            if (!project(w[0], w[1], w[2])) continue;
+            if (PX < -250 || PX > W + 250 || PY < -250 || PY > H + 250) continue;
+            it.px = PX; it.py = PY; it.ps = PS; it.pz = PZ; vis.push(it);
+        }
+        vis.sort((a, b) => b.pz - a.pz);
+        for (const it of vis) {
+            const hv = it === hovered ? 1.15 : 1;
+            let sc = it.ps * it.k * hv;
+            let al = clamp(1.2 - (it.pz - 1000) / 1800, it.type === 'planet' ? 0.6 : 0.35, 1);
+            if (it.type === 'star') { al *= 0.75 + 0.25 * Math.sin(t * 2.4 + it.ph); sc *= 0.92 + 0.12 * Math.sin(t * 2 + it.ph); }
+            const dw = it.spr.width * sc, dh = it.spr.height * sc;
+            ctx.globalAlpha = gA * al;
+            if (it.type === 'portal') {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.save(); ctx.translate(it.px, it.py); ctx.rotate(t * 0.9);
+                ctx.drawImage(it.spr, -dw / 2, -dh / 2, dw, dh); ctx.restore();
+                ctx.globalCompositeOperation = 'source-over';
+                const lw = it.lbl.width * it.ps * 0.55, lh = it.lbl.height * it.ps * 0.55;
+                ctx.drawImage(it.lbl, it.px - lw / 2, it.py + dh / 2 - lh * 0.1, lw, lh);
+            } else {
+                ctx.drawImage(it.spr, it.px - dw / 2, it.py - dh / 2, dw, dh);
+            }
+            if (canTap && it.g === cur) {
+                it.hx = it.px; it.hy = it.py; it.hw = Math.max(dw / 2, 26); it.hh = Math.max(dh / 2, 26); it.hz = it.pz;
+                hitList.push(it);
+            }
+        }
+    }
+
+    // nave y efectos de viaje
+    ctx.globalAlpha = 1;
+    drawStreaks(dt, fxWarp);
+    const shipTarget = (mode === 'travel' || mode === 'fly' || mode === 'return') ? 1 : 0;
+    shipA += (shipTarget - shipA) * Math.min(1, dt * 4.5);
+    if (shipA > 0.02) drawShip(t, dt, shipA, fxWarp);
+
+    // destellos al tocar
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter';
+    for (let i = bursts.length - 1; i >= 0; i--) {
+        const b = bursts[i]; b.life -= dt * 1.4;
+        if (b.life <= 0) { bursts.splice(i, 1); continue; }
+        b.x += b.vx * dt; b.y += b.vy * dt; b.vx *= 0.96; b.vy *= 0.96;
+        ctx.fillStyle = `rgba(${b.c},${b.life})`;
+        ctx.beginPath(); ctx.arc(b.x, b.y, 1 + b.life * 2.4, 0, TAU); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+
+    requestAnimationFrame(frame);
+}
+
+const ptrs = new Map();
+let downInfo = null, pinchD = 0;
+
+function pick(px, py) {
+    let best = null, bz = 1e12;
+    for (const it of hitList) {
+        if (Math.abs(px - it.hx) <= it.hw && Math.abs(py - it.hy) <= it.hh && it.hz < bz) { best = it; bz = it.hz; }
+    }
+    return best;
+}
+function route(it) {
+    if (it.type === 'portal') startTravel(1 - cur);
+    else if (it.type === 'photo' || it.type === 'planet') startFly(it);
+    else openModal(it);
+}
+
+cv.addEventListener('pointerdown', e => {
+    if (modalOpen || mode !== 'idle') return;
+    cv.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) downInfo = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0 };
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); downInfo = null; }
+});
+cv.addEventListener('pointermove', e => {
+    const p = ptrs.get(e.pointerId);
+    if (!p) {
+        if (interactive && !modalOpen && mode === 'idle' && e.pointerType === 'mouse') {
+            hovered = pick(e.clientX, e.clientY);
+            cv.classList.toggle('can-tap', !!hovered);
+        }
+        return;
+    }
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (ptrs.size === 2) {
+        const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinchD) zoom = clamp(zoom * (pinchD / d), 0.5, 1.9);
+        pinchD = d;
+    } else if (ptrs.size === 1) {
+        if (downInfo) downInfo.moved += Math.abs(dx) + Math.abs(dy);
+        yaw -= dx * 0.0052; pitch = clamp(pitch + dy * 0.0042, 0.06, 1.25);
+    }
+});
+function endPtr(e) {
+    const had = ptrs.has(e.pointerId);
+    ptrs.delete(e.pointerId);
+    if (!had) return;
+    if (ptrs.size < 2) pinchD = 0;
+    if (downInfo && e.type === 'pointerup' && downInfo.moved < 10 && performance.now() - downInfo.t < 600 &&
+        interactive && !modalOpen && mode === 'idle') {
+        spawnBurst(e.clientX, e.clientY);
+        const it = pick(e.clientX, e.clientY);
+        if (it) route(it);
+    }
+    downInfo = null;
+}
+cv.addEventListener('pointerup', endPtr);
+cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (mode === 'idle') zoom = clamp(zoom * (1 + e.deltaY * 0.0012), 0.5, 1.9);
+}, { passive: false });
+
+warpBtn.addEventListener('click', () => startTravel(1 - cur));
+
+const modal = $('#modal'), mTitle = $('#m-title'), mText = $('#m-text'), mImg = $('#m-img'),
+      mSign = $('#m-sign'), mBg = $('#m-bg');
+let modalOpen = false, typer = null, typeDelay = null, closeTimer = null;
+
+function openModal(it, origin) {
+    modalOpen = true; hovered = null; cv.classList.remove('can-tap');
+    clearTimeout(closeTimer);
+    mTitle.textContent = it.titulo;
+    mSign.textContent = CONFIG.firma;
+    mText.textContent = '';
+    const bgMode = !!origin && (it.type === 'photo' || it.type === 'planet');
+
+    // imagen pequeña (solo si es planeta-foto sin imagen o con imagen que no carga)
+    mImg.style.display = 'none'; mImg.removeAttribute('src');
+    if (it.type === 'photo' && !it.src && !it.fondo) { mImg.style.display = 'block'; mImg.src = it.fallback; }
+
+    modal.classList.toggle('has-bg', bgMode);
+    if (bgMode) {
+        const tint = it.tint || '255,130,200';
+        let bg = `radial-gradient(circle at 50% 30%, rgba(${tint},.55), rgba(10,4,26,.96) 72%)`;
+        const bgSrc = it.fondo || it.src;
+        if (bgSrc) {
+            bg = `url("${bgSrc.replace(/"/g, '%22')}"), ` + bg;
+            if (it.type === 'photo') {
+                const test = new Image();
+                test.onerror = () => { if (it.fallback) { mImg.src = it.fallback; mImg.style.display = 'block'; } };
+                test.src = bgSrc;
+            }
+        }
+        mBg.style.backgroundImage = bg;
+        const cx = origin.x || W / 2, cy = origin.y || H / 2;
+        mBg.style.transition = 'none';
+        mBg.style.clipPath = `circle(0px at ${cx}px ${cy}px)`;
+        void mBg.offsetWidth;
+        mBg.style.transition = '';
+        requestAnimationFrame(() => { mBg.style.clipPath = `circle(160vmax at ${cx}px ${cy}px)`; });
+    }
+
+    modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false');
+    syncUI();
+    clearInterval(typer); clearTimeout(typeDelay);
+    const full = it.texto;
+    typeDelay = setTimeout(() => {
+        let i = 0;
+        typer = setInterval(() => {
+            mText.textContent = full.slice(0, ++i);
+            if (i >= full.length) clearInterval(typer);
+        }, 34);
+    }, bgMode ? 950 : 0);
+    risingHearts(it.type === 'heart' ? 26 : 14);
+}
+function closeModal() {
+    if (!modalOpen) return;
+    modalOpen = false; clearInterval(typer); clearTimeout(typeDelay);
+    modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true');
+    closeTimer = setTimeout(() => {
+        modal.classList.remove('has-bg');
+        mBg.style.transition = 'none'; mBg.style.clipPath = 'circle(0px at 50% 50%)';
+    }, 450);
+    if (mode === 'landed') endLanding(); else syncUI();
+}
+function risingHearts(n) {
+    const box = $('#hearts'), em = ['💗', '💖', '💕', '✨', '💜', '🌸'];
+    for (let i = 0; i < n; i++) {
+        const h = document.createElement('span');
+        h.className = 'rise'; h.textContent = em[Math.floor(Math.random() * em.length)];
+        h.style.left = rnd(4, 94) + 'vw';
+        h.style.fontSize = rnd(16, 34) + 'px';
+        h.style.setProperty('--d', rnd(2.4, 4.2) + 's');
+        h.style.setProperty('--dx', rnd(-60, 60) + 'px');
+        h.style.setProperty('--r', rnd(-25, 25) + 'deg');
+        h.style.animationDelay = rnd(0, 0.9) + 's';
+        h.addEventListener('animationend', () => h.remove());
+        box.appendChild(h);
+    }
+}
+$('#m-close').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal || e.target === mBg) closeModal(); });
+window.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+const musicBtn = $('#music-btn');
+const ICON_PAUSE = '<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+let playing = false, audioEl = null, ac = null, master = null, chordTimer = null, chordIdx = 0;
+
+function ambientNotes() {
+    const chords = [[261.63,329.63,392,523.25],[220,261.63,329.63,440],[174.61,220,261.63,349.23],[196,246.94,293.66,392]];
+    const now = ac.currentTime, ch = chords[chordIdx++ % 4];
+    ch.forEach((f, k) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, now + k * 0.12);
+        g.gain.linearRampToValueAtTime(0.5 / (k + 1.6), now + 1.3 + k * 0.12);
+        g.gain.linearRampToValueAtTime(0, now + 4.3);
+        o.connect(g); g.connect(master); o.start(now + k * 0.12); o.stop(now + 4.4);
+    });
+    for (let j = 0; j < 3; j++) {
+        const o = ac.createOscillator(), g = ac.createGain(), at = now + 1 + j * 0.95;
+        o.type = 'triangle'; o.frequency.value = ch[(j * 2 + 1) % 4] * 2;
+        g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(0.16, at + 0.02); g.gain.exponentialRampToValueAtTime(0.001, at + 1.2);
+        o.connect(g); g.connect(master); o.start(at); o.stop(at + 1.3);
+    }
+}
+function ambientStart() {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    if (!ac) {
+        ac = new AC(); master = ac.createGain(); master.gain.value = 0.13;
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500;
+        master.connect(lp); lp.connect(ac.destination);
+    }
+    ac.resume(); ambientNotes();
+    clearInterval(chordTimer); chordTimer = setInterval(ambientNotes, 4000);
+}
+function musicOn() {
+    if (CONFIG.musica) {
+        if (!audioEl) { audioEl = new Audio(CONFIG.musica); audioEl.loop = true; audioEl.onerror = () => { audioEl = null; CONFIG.musica = ''; ambientStart(); }; }
+        audioEl.play().catch(() => {});
+    } else ambientStart();
+    playing = true; musicBtn.innerHTML = ICON_PAUSE;
+}
+function musicOff() {
+    if (audioEl) audioEl.pause();
+    if (ac) { clearInterval(chordTimer); ac.suspend(); }
+    playing = false; musicBtn.innerHTML = ICON_PLAY;
+}
+musicBtn.innerHTML = ICON_PAUSE;
+musicBtn.addEventListener('click', () => playing ? musicOff() : musicOn());
+
+$('#fs-btn').addEventListener('click', () => {
+    const el = document.documentElement;
+    try {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) (el.requestFullscreen || el.webkitRequestFullscreen || (() => {})).call(el);
+        else (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } catch (e) {}
+});
+
+$('#start-btn').addEventListener('click', () => {
+    if (started) return;
+    started = true; tStart = nowT();
+    $('#start-overlay').classList.add('hide');
+    document.body.classList.add('live');
+    musicOn();
+});
+
+const ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+const go = () => { buildItems(); syncUI(); requestAnimationFrame(frame); };
+Promise.race([ready, new Promise(r => setTimeout(r, 1500))]).then(go);
+
+})();
+</script>
+</body>
+</html>
